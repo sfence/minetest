@@ -80,15 +80,13 @@ cmake .. \
 
 If you are using LuaJIT with `MAP_JIT` support add `-DXCODE_CODE_SIGN_ENTITLEMENTS=../misc/entitlements/release_map_jit.entitlements`.
 
-You can also use `-DXCODE_CODE_SIGN_IDENTITY="DEV_ID"` amd `-DXCODE_CODE_SIGN_TEAM="TEAM_ID"` to specify team and developer for signing.
-
 *WARNING:* You have to regenerate Xcode project if you switch commit, branch or etc.
 
 ### Build and Run
 
 * Open generated Xcode project
 * Select schemae `minetest`
-* Configure signing Team if is not set via cmake
+* Configure signing Team etc.
 * Run Build command 
 * Open application from `build/build/Debug/` directory or run it from Xcode
 
@@ -96,7 +94,7 @@ You can also use `-DXCODE_CODE_SIGN_IDENTITY="DEV_ID"` amd `-DXCODE_CODE_SIGN_TE
 
 * Open generated Xcode project
 * Select schemae `minetest`
-* Configure signing Team if is not set via cmake
+* Configure signing Team etc.
 * Run Build command 
 * Open application archive in finder, go into it, copy application and test it.
 
