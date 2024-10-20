@@ -598,24 +598,39 @@ if(PRECOMPILE_HEADERS)
 	target_precompile_headers(EngineCommon PRIVATE ${PRECOMPILED_HEADERS_LIST})
 endif()
 
+# Set variable related to Code Signing with XCODE
+set(XCODE_CODE_SIGN_IDENTITY "" CACHE STRING "Xcode signing Developer identity")
+set(XCODE_CODE_SIGN_TEAM "" CACHE STRING "Xcode signing Team name")
+set(XCODE_CODE_SIGN_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/misc/entitlements/release.entitlements" CACHE FILEPATH "Path to entitlements file to be used with Xcode signing")
+
+if(APPLE)
+	# Configure the Info.plist file
+	configure_file(
+		"${CMAKE_SOURCE_DIR}/misc/Info.plist.in"
+		"${CMAKE_BINARY_DIR}/Info.plist"
+	)
+endif()
+
 if(BUILD_CLIENT)
 	# client target
 	if(ANDROID)
 		add_library(${PROJECT_NAME})
-	elseif(CMAKE_GENERATOR STREQUAL "Xcode")
+	else()
+		add_executable(${PROJECT_NAME})
+	endif()
+
+
+	if(CMAKE_GENERATOR STREQUAL "Xcode")
 		set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/build")
 		set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/build")
 
-		add_executable(${PROJECT_NAME} MACOSX_BUNDLE)
-		
 		target_sources(${PROJECT_NAME} PUBLIC ${client_RESOURCES})
 
 		add_dependencies(${PROJECT_NAME} translations)
 
 		set_target_properties(${PROJECT_NAME} PROPERTIES
 			MACOSX_BUNDLE TRUE
-			MACOSX_BUNDLE_BUNDLE_NAME "${PROJECT_NAME_CAPITALIZED}"
-			MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/misc/Info.plist"
+			MACOSX_BUNDLE_INFO_PLIST "${CMAKE_BINARY_DIR}/Info.plist"
 			RESOURCE "${client_RESOURCES}"
 			XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME "YES"
 			XCODE_ATTRIBUTE_INSTALL_PATH "/Applications"
@@ -625,28 +640,23 @@ if(BUILD_CLIENT)
 			XCODE_ATTRIBUTE_CONFIGURATION_BUILD_DIR "$(inherited)"
 		)
 
-		if (CMAKE_BUILD_TYPE STREQUAL Release)
-			set_target_properties(${PROJECT_NAME} PROPERTIES
-				XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/misc/entitlements/release.entitlements"
-			)
-		else()
-			set_target_properties(${PROJECT_NAME} PROPERTIES
-				XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_SOURCE_DIR}/misc/entitlements/debug.entitlements"
-			)
-		endif()
-
-		# Enable scheme generation
-		#set(CMAKE_XCODE_GENERATE_SCHEME ON)
+		set_target_properties(${PROJECT_NAME} PROPERTIES
+			XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${XCODE_CODE_SIGN_ENTITLEMENTS}"
+		)
 
 		# Prinv env variables to file, for debugging purposes
 		#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 		#	COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/util/xcode/capture_env.sh ${CMAKE_BINARY_DIR}/post_env.log
 		#)
 
-		#set_target_properties(${PROJECT_NAME} PROPERTIES
-		#	XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Minetest Developer"
-		#	XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "Minetest-team"
-		#)
+		if(NOT "${XCODE_CODE_SIGN_TEAM}" STREQUAL "")
+			set_target_properties(${PROJECT_NAME} PROPERTIES
+				XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
+				XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${XCODE_CODE_SIGN_TEAM}"
+				XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${XCODE_CODE_SIGN_IDENTITY}"
+			)
+		endif()
+
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 			COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/util/xcode/install_resources.cmake
 				-DTARGET_DIR=$<TARGET_FILE_DIR:${PROJECT_NAME}>
@@ -654,9 +664,8 @@ if(BUILD_CLIENT)
 				-DPROJECT_NAME=${PROJECT_NAME}
 			COMMENT "Checking INSTALL_ROOT and copying resources"
 		)
-	else()
-		add_executable(${PROJECT_NAME})
 	endif()
+
 	list(SORT client_SRCS)
 	target_sources(${PROJECT_NAME} PRIVATE
 		$<TARGET_OBJECTS:EngineCommon>

@@ -272,7 +272,7 @@ endif()
 
 if(APPLE)
 	install(FILES "misc/minetest-icon.icns" DESTINATION "${SHAREDIR}")
-	install(FILES "misc/Info.plist" DESTINATION "${BUNDLE_PATH}/Contents")
+	install(FILES "${CMAKE_BINARY_DIR}/Info.plist" DESTINATION "${BUNDLE_PATH}/Contents")
 endif()
 
 if(CMAKE_GENERATOR STREQUAL "Xcode")
