@@ -601,12 +601,14 @@ endif()
 if(BUILD_CLIENT)
 	# client target
 	if(ANDROID)
-		add_library(${PROJECT_NAME} SHARED)
+		add_library(${PROJECT_NAME})
 	elseif(CMAKE_GENERATOR STREQUAL "Xcode")
-		set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/macos")
-		set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/macos)")
+		set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/build")
+		set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/build")
 
-		add_executable(${PROJECT_NAME})
+		add_executable(${PROJECT_NAME} MACOSX_BUNDLE)
+		
+		target_sources(${PROJECT_NAME} PUBLIC ${client_RESOURCES})
 
 		add_dependencies(${PROJECT_NAME} translations)
 
@@ -636,54 +638,21 @@ if(BUILD_CLIENT)
 		# Enable scheme generation
 		#set(CMAKE_XCODE_GENERATE_SCHEME ON)
 
+		# Prinv env variables to file, for debugging purposes
+		#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+		#	COMMAND ${CMAKE_COMMAND} -E env bash ${CMAKE_SOURCE_DIR}/util/xcode/capture_env.sh ${CMAKE_BINARY_DIR}/post_env.log
+		#)
+
 		#set_target_properties(${PROJECT_NAME} PROPERTIES
 		#	XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Minetest Developer"
 		#	XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "Minetest-team"
 		#)
 		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy_directory
-			${CMAKE_SOURCE_DIR}/builtin
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/builtin
-		)
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy_directory
-			${CMAKE_SOURCE_DIR}/client/shaders
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/client/shaders
-		)
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy_directory
-			${CMAKE_SOURCE_DIR}/fonts
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/fonts
-		)
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy_directory
-			${CMAKE_BINARY_DIR}/locale
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/locale
-		)
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E make_directory
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/minetest
-		)
-		set(RESOURCE_MINETEST_FILES
-			${CMAKE_SOURCE_DIR}/README.md
-			${CMAKE_SOURCE_DIR}/doc/client_lua_api.md
-			${CMAKE_SOURCE_DIR}/doc/lua_api.md
-			${CMAKE_SOURCE_DIR}/doc/menu_lua_api.md
-			${CMAKE_SOURCE_DIR}/minetest.conf.example
-			${CMAKE_SOURCE_DIR}/doc/texture_packs.md
-			${CMAKE_SOURCE_DIR}/doc/world_format.md
-		)
-		foreach (file ${RESOURCE_MINETEST_FILES})
-			add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-				COMMAND ${CMAKE_COMMAND} -E copy
-				${file}
-				$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/minetest/
-			)
-		endforeach()
-		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy_directory
-			${CMAKE_SOURCE_DIR}/textures/base/pack
-			$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/textures/base/pack
+			COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/util/xcode/install_resources.cmake
+				-DTARGET_DIR=$<TARGET_FILE_DIR:${PROJECT_NAME}>
+				-DBINARY_DIR=${CMAKE_BINARY_DIR}
+				-DPROJECT_NAME=${PROJECT_NAME}
+			COMMENT "Checking INSTALL_ROOT and copying resources"
 		)
 	else()
 		add_executable(${PROJECT_NAME})
